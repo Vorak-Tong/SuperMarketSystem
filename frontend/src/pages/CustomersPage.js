@@ -64,7 +64,7 @@ function CustomersPage() {
         await createCustomer(form);
         enqueueSnackbar('Customer created', { variant: 'success' });
       }
-      fetchCustomers();
+      fetchCustomers(page, rowsPerPage);
       handleClose();
     } catch {
       enqueueSnackbar('Operation failed', { variant: 'error' });
@@ -76,7 +76,7 @@ function CustomersPage() {
     try {
       await deleteCustomer(id);
       enqueueSnackbar('Customer deleted', { variant: 'success' });
-      fetchCustomers();
+      fetchCustomers(page, rowsPerPage);
     } catch {
       enqueueSnackbar('Delete failed', { variant: 'error' });
     }

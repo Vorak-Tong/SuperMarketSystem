@@ -67,7 +67,7 @@ function RestockItemsPage() {
         await createRestockItem(form);
         enqueueSnackbar('Restock item created', { variant: 'success' });
       }
-      fetchItems();
+      fetchItems(page, rowsPerPage);
       handleClose();
     } catch {
       enqueueSnackbar('Operation failed', { variant: 'error' });
@@ -79,7 +79,7 @@ function RestockItemsPage() {
     try {
       await deleteRestockItem(restock_order_id, product_id);
       enqueueSnackbar('Restock item deleted', { variant: 'success' });
-      fetchItems();
+      fetchItems(page, rowsPerPage);
     } catch {
       enqueueSnackbar('Delete failed', { variant: 'error' });
     }

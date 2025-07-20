@@ -64,7 +64,7 @@ function RestockOrdersPage() {
         await createRestockOrder(form);
         enqueueSnackbar('Restock order created', { variant: 'success' });
       }
-      fetchOrders();
+      fetchOrders(page, rowsPerPage);
       handleClose();
     } catch {
       enqueueSnackbar('Operation failed', { variant: 'error' });
@@ -76,7 +76,7 @@ function RestockOrdersPage() {
     try {
       await deleteRestockOrder(id);
       enqueueSnackbar('Restock order deleted', { variant: 'success' });
-      fetchOrders();
+      fetchOrders(page, rowsPerPage);
     } catch {
       enqueueSnackbar('Delete failed', { variant: 'error' });
     }
