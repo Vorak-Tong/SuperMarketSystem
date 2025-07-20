@@ -136,3 +136,6 @@ dist
 .pnp.*
 
 .DS_Store
+
+# Ignore backup directory and files
+/backend/backup/

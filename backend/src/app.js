@@ -15,6 +15,7 @@ import roleRoutes from './routes/roleRoutes.js';
 import customerRoutes from './routes/customerRoutes.js';
 import restockOrderRoutes from './routes/restockOrderRoutes.js';
 import restockItemRoutes from './routes/restockItemRoutes.js';
+import backupRoutes from './routes/backupRoutes.js';
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/restock-orders', restockOrderRoutes);
 app.use('/api/restock-items', restockItemRoutes);
+app.use('/api/backup', backupRoutes);
 
 // Placeholder route
 app.get('/', (req, res) => {

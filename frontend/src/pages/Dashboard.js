@@ -3,6 +3,8 @@ import AuthContext from '../context/AuthContext';
 import api from '../services/api';
 import { Box, Typography, Paper, Grid, CircularProgress } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
+import { downloadFullBackup } from '../services/api';
+import Button from '@mui/material/Button';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
 
@@ -14,6 +16,8 @@ const Dashboard = () => {
   const [products, setProducts] = useState([]);
   const [branches, setBranches] = useState([]);
   const [error, setError] = useState('');
+  const [backupLoading, setBackupLoading] = useState(false);
+  const [backupError, setBackupError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -40,6 +44,18 @@ const Dashboard = () => {
     }
   };
 
+  const handleBackup = async () => {
+    setBackupLoading(true);
+    setBackupError('');
+    try {
+      await downloadFullBackup();
+    } catch (err) {
+      setBackupError('Backup failed.');
+    } finally {
+      setBackupLoading(false);
+    }
+  };
+
   // Analytics calculations
   const totalOrders = orders.length;
   const totalSales = orderItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
@@ -62,6 +78,14 @@ const Dashboard = () => {
     <Box p={3}>
       <Typography variant="h5" mb={2}>Welcome, {user?.username}!</Typography>
       <Typography variant="body1" mb={2}>Role: {user?.role_name}</Typography>
+      {user?.role_name?.toLowerCase().includes('admin') && (
+        <Box mb={2}>
+          <Button variant="contained" color="primary" onClick={handleBackup} disabled={backupLoading}>
+            {backupLoading ? 'Backing Up...' : 'Backup Now'}
+          </Button>
+          {backupError && <Typography color="error" mt={1}>{backupError}</Typography>}
+        </Box>
+      )}
       {loading ? <CircularProgress /> : error ? <Typography color="error">{error}</Typography> : (
         <Grid container spacing={3}>
           <Grid item xs={12} md={4}>

@@ -15,4 +15,27 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
+export const downloadFullBackup = async () => {
+  const token = localStorage.getItem('token');
+  const response = await api.post('/backup/full', null, {
+    responseType: 'blob',
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  // Extract filename from content-disposition header if present
+  const disposition = response.headers['content-disposition'];
+  let filename = 'backup.sql';
+  if (disposition && disposition.indexOf('filename=') !== -1) {
+    filename = disposition.split('filename=')[1].replace(/['"]/g, '');
+  }
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement('a');
+  link.href = url;
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
+
 export default api; 
