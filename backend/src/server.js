@@ -1,7 +1,7 @@
 import app from './app.js';
 import db from './models/index.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3100;
 
 (async () => {
   try {

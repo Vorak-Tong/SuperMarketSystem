@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, CircularProgress, TablePagination
 } from '@mui/material';
 import { Edit, Delete, Visibility } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
@@ -32,20 +32,39 @@ const SalesDataPage = () => {
   const [itemDialogOpen, setItemDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState(emptyOrderItem);
+  // Pagination
+  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [customerPage, setCustomerPage] = useState(0);
+  const [customerRowsPerPage, setCustomerRowsPerPage] = useState(10);
+  const [branchPage, setBranchPage] = useState(0);
+  const [branchRowsPerPage, setBranchRowsPerPage] = useState(10);
+  const [productPage, setProductPage] = useState(0);
+  const [productRowsPerPage, setProductRowsPerPage] = useState(10);
+  const [totalCustomers, setTotalCustomers] = useState(0);
+  const [totalBranches, setTotalBranches] = useState(0);
+  const [totalProducts, setTotalProducts] = useState(0);
 
   useEffect(() => {
-    fetchOrders();
-    fetchBranches();
-    fetchCustomers();
-    fetchProducts();
-    // eslint-disable-next-line
-  }, []);
+    fetchOrders(page, rowsPerPage);
+  }, [page, rowsPerPage]);
+  useEffect(() => {
+    fetchCustomers(customerPage, customerRowsPerPage);
+  }, [customerPage, customerRowsPerPage]);
+  useEffect(() => {
+    fetchBranches(branchPage, branchRowsPerPage);
+  }, [branchPage, branchRowsPerPage]);
+  useEffect(() => {
+    fetchProducts(productPage, productRowsPerPage);
+  }, [productPage, productRowsPerPage]);
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (pageArg = page, limitArg = rowsPerPage) => {
     setLoading(true);
     try {
-      const res = await api.get('/orders');
-      setOrders(res.data);
+      const res = await api.get(`/orders?page=${pageArg + 1}&limit=${limitArg}`);
+      setOrders(res.data.data || res.data || []);
+      setTotal(res.data.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err) {
       setError('Failed to fetch orders');
     } finally {
@@ -53,28 +72,31 @@ const SalesDataPage = () => {
     }
   };
 
-  const fetchBranches = async () => {
+  const fetchBranches = async (pageArg = branchPage, limitArg = branchRowsPerPage) => {
     try {
-      const res = await api.get('/branches');
-      setBranches(res.data);
+      const res = await api.get(`/branches?page=${pageArg + 1}&limit=${limitArg}`);
+      setBranches(res.data.data || res.data || []);
+      setTotalBranches(res.data.total || 0);
     } catch (err) {
       setBranches([]);
     }
   };
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (pageArg = customerPage, limitArg = customerRowsPerPage) => { // default to large limit if not paginating customers here
     try {
-      const res = await api.get('/customers');
-      setCustomers(res.data);
+      const res = await api.get(`/customers?page=${pageArg + 1}&limit=${limitArg}`);
+      setCustomers(res.data.data || []);
+      setTotalCustomers(res.data.total || 0);
     } catch (err) {
       setCustomers([]);
     }
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (pageArg = productPage, limitArg = productRowsPerPage) => {
     try {
-      const res = await api.get('/products');
-      setProducts(res.data);
+      const res = await api.get(`/products?page=${pageArg + 1}&limit=${limitArg}`);
+      setProducts(res.data.data || res.data || []);
+      setTotalProducts(res.data.total || 0);
     } catch (err) {
       setProducts([]);
     }
@@ -243,6 +265,14 @@ const SalesDataPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+      />
       {/* Order CRUD Dialog */}
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <DialogTitle>{editingOrder ? 'Edit Order' : 'Add Order'}</DialogTitle>
@@ -399,6 +429,121 @@ const SalesDataPage = () => {
           <Button type="submit" form="item-form" variant="contained">Save</Button>
         </DialogActions>
       </Dialog>
+      <TablePagination
+        component="div"
+        count={totalCustomers}
+        page={customerPage}
+        onPageChange={(e, newPage) => setCustomerPage(newPage)}
+        rowsPerPage={customerRowsPerPage}
+        onRowsPerPageChange={e => { setCustomerRowsPerPage(parseInt(e.target.value, 10)); setCustomerPage(0); }}
+      />
+      <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Customer ID</TableCell>
+              <TableCell>First Name</TableCell>
+              <TableCell>Last Name</TableCell>
+              <TableCell>Email</TableCell>
+              <TableCell>Phone</TableCell>
+              {isEditor && <TableCell>Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {customers.map((c) => (
+              <TableRow key={c.customer_id}>
+                <TableCell>{c.customer_id}</TableCell>
+                <TableCell>{c.first_name}</TableCell>
+                <TableCell>{c.last_name}</TableCell>
+                <TableCell>{c.email}</TableCell>
+                <TableCell>{c.phone}</TableCell>
+                {isEditor && (
+                  <TableCell>
+                    <IconButton onClick={() => handleOpenDialog({ customer_id: c.customer_id, branch_id: '', order_date: '' })}><Edit /></IconButton>
+                    <IconButton onClick={() => handleDelete(c.customer_id)}><Delete /></IconButton>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        component="div"
+        count={totalBranches}
+        page={branchPage}
+        onPageChange={(e, newPage) => setBranchPage(newPage)}
+        rowsPerPage={branchRowsPerPage}
+        onRowsPerPageChange={e => { setBranchRowsPerPage(parseInt(e.target.value, 10)); setBranchPage(0); }}
+      />
+      <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Branch ID</TableCell>
+              <TableCell>Branch Name</TableCell>
+              <TableCell>Location</TableCell>
+              <TableCell>Phone</TableCell>
+              {isEditor && <TableCell>Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {branches.map((b) => (
+              <TableRow key={b.branch_id}>
+                <TableCell>{b.branch_id}</TableCell>
+                <TableCell>{b.branch_name}</TableCell>
+                <TableCell>{b.location}</TableCell>
+                <TableCell>{b.phone}</TableCell>
+                {isEditor && (
+                  <TableCell>
+                    <IconButton onClick={() => handleOpenDialog({ customer_id: '', branch_id: b.branch_id, order_date: '' })}><Edit /></IconButton>
+                    <IconButton onClick={() => handleDelete(b.branch_id)}><Delete /></IconButton>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
+      <TablePagination
+        component="div"
+        count={totalProducts}
+        page={productPage}
+        onPageChange={(e, newPage) => setProductPage(newPage)}
+        rowsPerPage={productRowsPerPage}
+        onRowsPerPageChange={e => { setProductRowsPerPage(parseInt(e.target.value, 10)); setProductPage(0); }}
+      />
+      <TableContainer component={Paper} sx={{ maxWidth: '100vw', overflowX: 'auto' }}>
+        <Table size="small">
+          <TableHead>
+            <TableRow>
+              <TableCell>Product ID</TableCell>
+              <TableCell>Product Name</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Category</TableCell>
+              <TableCell>Supplier</TableCell>
+              {isEditor && <TableCell>Actions</TableCell>}
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {products.map((p) => (
+              <TableRow key={p.product_id}>
+                <TableCell>{p.product_id}</TableCell>
+                <TableCell>{p.product_name}</TableCell>
+                <TableCell>{p.price}</TableCell>
+                <TableCell>{p.category?.category_name || p.category_id}</TableCell>
+                <TableCell>{p.supplier}</TableCell>
+                {isEditor && (
+                  <TableCell>
+                    <IconButton onClick={() => handleOpenDialog({ customer_id: '', branch_id: '', order_date: '', product_id: p.product_id })}><Edit /></IconButton>
+                    <IconButton onClick={() => handleDelete(p.product_id)}><Delete /></IconButton>
+                  </TableCell>
+                )}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </Box>
   );
 };

@@ -7,7 +7,7 @@ import {
   deleteRestockOrder
 } from '../services/restockOrders';
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, CircularProgress
+  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, CircularProgress, TablePagination
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
@@ -24,21 +24,26 @@ function RestockOrdersPage() {
   const [form, setForm] = useState(emptyOrder);
   const [selectedId, setSelectedId] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const canEdit = user && (user.role_name === 'Administrator' || user.role_name === 'Backend Developer');
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (pageArg = page, limitArg = rowsPerPage) => {
     setLoading(true);
     try {
-      const res = await getRestockOrders();
-      setOrders(res.data);
+      const res = await getRestockOrders(pageArg + 1, limitArg);
+      setOrders(res.data.data || res.data || []);
+      setTotal(res.data.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err) {
       enqueueSnackbar('Failed to fetch restock orders', { variant: 'error' });
+      setOrders([]);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  useEffect(() => { fetchOrders(page, rowsPerPage); }, [page, rowsPerPage]);
 
   const handleOpen = (order = emptyOrder) => {
     setForm(order);
@@ -110,6 +115,14 @@ function RestockOrdersPage() {
           </Table>
         </TableContainer>
       )}
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+      />
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{editMode ? 'Edit Restock Order' : 'Add Restock Order'}</DialogTitle>
         <DialogContent>

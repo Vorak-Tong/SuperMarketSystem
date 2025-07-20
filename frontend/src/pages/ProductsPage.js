@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useContext } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, TablePagination
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
 import api from '../services/api';
 import { useSnackbar } from 'notistack';
 
-const emptyProduct = { product_name: '', price: '', category_id: '', brand: '' };
+const emptyProduct = { product_name: '', price: '', category_id: ''};
 
 const ProductsPage = () => {
   const { user } = useContext(AuthContext);
@@ -20,18 +20,22 @@ const ProductsPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [form, setForm] = useState(emptyProduct);
+  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     fetchProducts();
     fetchCategories();
     // eslint-disable-next-line
-  }, []);
+  }, [page, rowsPerPage]);
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (pageArg = page, limitArg = rowsPerPage) => {
     setLoading(true);
     try {
-      const res = await api.get('/products');
-      setProducts(res.data);
+      const res = await api.get(`/products?page=${pageArg + 1}&limit=${limitArg}`);
+      setProducts(res.data.data || res.data || []);
+      setTotal(res.data.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err) {
       setError('Failed to fetch products');
     } finally {
@@ -67,15 +71,32 @@ const ProductsPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    // Frontend validation
+    if (!form.product_name || !form.price || !form.category_id) {
+      setError('All fields are required.');
+      enqueueSnackbar('All fields are required.', { variant: 'error' });
+      return;
+    }
+    if (isNaN(Number(form.price)) || Number(form.price) < 0) {
+      setError('Price must be a non-negative number.');
+      enqueueSnackbar('Price must be a non-negative number.', { variant: 'error' });
+      return;
+    }
+    const payload = {
+      ...form,
+      price: Number(form.price),
+      category_id: Number(form.category_id),
+    };
+    console.log('Submitting product:', payload);
     try {
       if (editingProduct) {
-        await api.put(`/products/${editingProduct.product_id}`, form);
+        await api.put(`/products/${editingProduct.product_id}`, payload);
         enqueueSnackbar('Product updated', { variant: 'success' });
       } else {
-        await api.post('/products', form);
+        await api.post('/products', payload);
         enqueueSnackbar('Product added', { variant: 'success' });
       }
-      fetchProducts();
+      fetchProducts(page, rowsPerPage);
       handleCloseDialog();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save product');
@@ -87,7 +108,7 @@ const ProductsPage = () => {
     if (!window.confirm('Delete this product?')) return;
     try {
       await api.delete(`/products/${product_id}`);
-      fetchProducts();
+      fetchProducts(page, rowsPerPage);
       enqueueSnackbar('Product deleted', { variant: 'success' });
     } catch (err) {
       setError('Failed to delete product');
@@ -111,7 +132,6 @@ const ProductsPage = () => {
               <TableCell>Name</TableCell>
               <TableCell>Price</TableCell>
               <TableCell>Category</TableCell>
-              <TableCell>Brand</TableCell>
               {isEditor && <TableCell>Actions</TableCell>}
             </TableRow>
           </TableHead>
@@ -121,7 +141,6 @@ const ProductsPage = () => {
                 <TableCell>{p.product_name}</TableCell>
                 <TableCell>{p.price}</TableCell>
                 <TableCell>{p.category?.category_name || p.category_id}</TableCell>
-                <TableCell>{p.brand}</TableCell>
                 {isEditor && (
                   <TableCell>
                     <IconButton onClick={() => handleOpenDialog(p)}><Edit /></IconButton>
@@ -133,6 +152,14 @@ const ProductsPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+      />
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <DialogTitle>{editingProduct ? 'Edit Product' : 'Add Product'}</DialogTitle>
         <DialogContent>
@@ -172,14 +199,6 @@ const ProductsPage = () => {
                 <option key={cat.category_id} value={cat.category_id}>{cat.category_name}</option>
               ))}
             </TextField>
-            <TextField
-              label="Brand"
-              name="brand"
-              value={form.brand}
-              onChange={handleChange}
-              fullWidth
-              margin="normal"
-            />
           </form>
         </DialogContent>
         <DialogActions>

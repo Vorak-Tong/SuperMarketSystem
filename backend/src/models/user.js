@@ -28,6 +28,9 @@ const User = sequelize.define('User', {
 }, {
   tableName: 'users',
   timestamps: false,
+  indexes: [
+    { unique: true, fields: ['username'] }
+  ]
 });
 
 User.belongsTo(Role, { foreignKey: 'role_id', as: 'role' });

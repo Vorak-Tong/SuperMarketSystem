@@ -3,7 +3,7 @@ import AuthContext from '../context/AuthContext';
 import api from '../services/api';
 import { Box, Typography, Paper, Grid, CircularProgress } from '@mui/material';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from 'recharts';
-import { downloadFullBackup } from '../services/api';
+import { downloadFullBackup, fetchTotalSales, fetchTopProducts } from '../services/api';
 import Button from '@mui/material/Button';
 
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#ff8042', '#0088FE', '#00C49F'];
@@ -18,6 +18,9 @@ const Dashboard = () => {
   const [error, setError] = useState('');
   const [backupLoading, setBackupLoading] = useState(false);
   const [backupError, setBackupError] = useState('');
+  const [totalSales, setTotalSales] = useState(0);
+  const [topProducts, setTopProducts] = useState([]);
+  const [totalOrders, setTotalOrders] = useState(0);
 
   useEffect(() => {
     fetchData();
@@ -27,16 +30,20 @@ const Dashboard = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [ordersRes, itemsRes, productsRes, branchesRes] = await Promise.all([
-        api.get('/orders'),
-        api.get('/order-items'),
+      const [ordersRes, productsRes, branchesRes, salesRes, topProductsRes, totalOrdersRes] = await Promise.all([
+        api.get('/orders/recent'),
         api.get('/products'),
         api.get('/branches'),
+        fetchTotalSales(),
+        fetchTopProducts(5),
+        api.get('/orders/total')
       ]);
       setOrders(ordersRes.data);
-      setOrderItems(itemsRes.data);
       setProducts(productsRes.data);
-      setBranches(branchesRes.data);
+      setBranches(branchesRes.data.data || branchesRes.data || []);
+      setTotalSales(salesRes.totalSales);
+      setTopProducts(topProductsRes.topProducts);
+      setTotalOrders(totalOrdersRes.data.totalOrders);
     } catch (err) {
       setError('Failed to load dashboard data');
     } finally {
@@ -57,14 +64,12 @@ const Dashboard = () => {
   };
 
   // Analytics calculations
-  const totalOrders = orders.length;
-  const totalSales = orderItems.reduce((sum, item) => sum + (item.unit_price * item.quantity), 0);
-
-  // Top products by sales
-  const productSales = products.map(p => ({
+  // Remove old totalSales and productSales calculations
+  // Top products by sales (from API)
+  const productSales = topProducts.map(p => ({
     name: p.product_name,
-    sales: orderItems.filter(i => i.product_id === p.product_id).reduce((sum, i) => sum + (i.unit_price * i.quantity), 0)
-  })).sort((a, b) => b.sales - a.sales).slice(0, 5);
+    sales: p.totalSales
+  }));
 
   // Top branches by sales
   const branchSales = branches.map(b => ({

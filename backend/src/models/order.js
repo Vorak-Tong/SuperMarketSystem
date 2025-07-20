@@ -33,6 +33,11 @@ const Order = sequelize.define('Order', {
 }, {
   tableName: 'orders',
   timestamps: false,
+  indexes: [
+    { fields: ['order_date'] },
+    { fields: ['customer_id'] },
+    { fields: ['branch_id'] }
+  ]
 });
 
 Order.belongsTo(Customer, { foreignKey: 'customer_id', as: 'customer' });

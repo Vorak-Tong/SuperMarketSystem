@@ -4,11 +4,18 @@ import Product from '../models/product.js';
 
 export const getAllRestockItems = async (req, res) => {
   try {
-    const items = await RestockItem.findAll({ include: [
-      { model: RestockOrder, as: 'restock_order' },
-      { model: Product, as: 'product' }
-    ] });
-    res.json(items);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const { rows, count } = await RestockItem.findAndCountAll({
+      include: [
+        { model: RestockOrder, as: 'restock_order' },
+        { model: Product, as: 'product' }
+      ],
+      offset,
+      limit
+    });
+    res.json({ data: rows, total: count });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

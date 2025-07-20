@@ -18,14 +18,16 @@ const fullBackup = (req, res) => {
     const backupFile = `backup_${timestamp}.sql`;
     const backupPath = path.join(backupDir, backupFile);
 
-    const dbHost = process.env.DB_HOST || 'localhost';
-    const dbUser = process.env.DB_USER || 'root';
-    const dbPassword = process.env.DB_PASSWORD || '';
-    const dbName = process.env.DB_NAME || 'supermarket';
-    const dumpCommand = `mysqldump -h${dbHost} -u${dbUser} ${dbPassword ? '-p' + dbPassword : ''} ${dbName} > "${backupPath}"`;
+    const dbHost = process.env.DB_HOST || '100.87.131.70';
+    const dbUser = process.env.DB_USER || 'ts_user';
+    const dbPassword = process.env.DB_PASSWORD || 'secret123';
+    const dbName = process.env.DB_NAME || 'g1_supermarket';
+    const dbPort = process.env.DB_PORT || '3306';
+
+    const dumpCommand = `mysqldump -h${dbHost} -P${dbPort} -u${dbUser} ${dbPassword ? '-p' + dbPassword : ''} ${dbName} > "${backupPath}"`;
 
     // Debug logs
-    console.log('DB_HOST:', dbHost, 'DB_USER:', dbUser, 'DB_NAME:', dbName);
+    console.log('DB_HOST:', dbHost, 'DB_PORT:', dbPort, 'DB_USER:', dbUser, 'DB_NAME:', dbName);
     console.log('Dump command:', dumpCommand);
 
     exec(dumpCommand, (error, stdout, stderr) => {

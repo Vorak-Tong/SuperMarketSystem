@@ -7,7 +7,7 @@ import {
   deleteCustomer
 } from '../services/customers';
 import {
-  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, CircularProgress
+  Button, Dialog, DialogActions, DialogContent, DialogTitle, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, IconButton, CircularProgress, TablePagination
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
 import { useSnackbar } from 'notistack';
@@ -24,21 +24,26 @@ function CustomersPage() {
   const [form, setForm] = useState(emptyCustomer);
   const [selectedId, setSelectedId] = useState(null);
   const { enqueueSnackbar } = useSnackbar();
+  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
 
   const canEdit = user && (user.role_name === 'Administrator' || user.role_name === 'Backend Developer');
 
-  const fetchCustomers = async () => {
+  const fetchCustomers = async (pageArg = page, limitArg = rowsPerPage) => {
     setLoading(true);
     try {
-      const res = await getCustomers();
-      setCustomers(res.data);
+      const res = await getCustomers(pageArg + 1, limitArg);
+      setCustomers(res.data.data || res.data || []);
+      setTotal(res.data.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err) {
       enqueueSnackbar('Failed to fetch customers', { variant: 'error' });
+      setCustomers([]);
     }
     setLoading(false);
   };
 
-  useEffect(() => { fetchCustomers(); }, []);
+  useEffect(() => { fetchCustomers(page, rowsPerPage); }, [page, rowsPerPage]);
 
   const handleOpen = (customer = emptyCustomer) => {
     setForm(customer);
@@ -95,7 +100,7 @@ function CustomersPage() {
             <TableBody>
               {customers.map(c => (
                 <TableRow key={c.customer_id}>
-                  <TableCell>{c.name}</TableCell>
+                  <TableCell>{c.first_name} {c.last_name}</TableCell>
                   <TableCell>{c.email}</TableCell>
                   <TableCell>{c.phone}</TableCell>
                   {canEdit && <TableCell>
@@ -108,6 +113,14 @@ function CustomersPage() {
           </Table>
         </TableContainer>
       )}
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+      />
       <Dialog open={open} onClose={handleClose}>
         <DialogTitle>{editMode ? 'Edit Customer' : 'Add Customer'}</DialogTitle>
         <DialogContent>

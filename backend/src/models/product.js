@@ -26,12 +26,12 @@ const Product = sequelize.define('Product', {
       key: 'category_id',
     },
   },
-  brand: {
-    type: DataTypes.STRING(100),
-  },
 }, {
   tableName: 'products',
   timestamps: false,
+  indexes: [
+    { unique: true, fields: ['product_name'] }
+  ]
 });
 
 Product.belongsTo(ProductCategory, { foreignKey: 'category_id', as: 'category' });

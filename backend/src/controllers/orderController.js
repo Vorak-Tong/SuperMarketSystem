@@ -5,9 +5,10 @@ import Branch from '../models/branch.js';
 export const getAllOrders = async (req, res) => {
   try {
     const orders = await Order.findAll({
+      attributes: ['order_id', 'customer_id', 'branch_id', 'order_date'],
       include: [
-        { model: Customer, as: 'customer' },
-        { model: Branch, as: 'branch' }
+        { model: Customer, as: 'customer', attributes: ['customer_id', 'first_name', 'last_name'] },
+        { model: Branch, as: 'branch', attributes: ['branch_id', 'branch_name'] }
       ]
     });
     res.json(orders);
@@ -62,6 +63,32 @@ export const deleteOrder = async (req, res) => {
     if (!order) return res.status(404).json({ message: 'Order not found' });
     await order.destroy();
     res.json({ message: 'Order deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+export const getRecentOrders = async (req, res) => {
+  try {
+    const orders = await Order.findAll({
+      attributes: ['order_id', 'customer_id', 'branch_id', 'order_date'],
+      include: [
+        { model: Customer, as: 'customer', attributes: ['customer_id', 'first_name', 'last_name'] },
+        { model: Branch, as: 'branch', attributes: ['branch_id', 'branch_name'] }
+      ],
+      order: [['order_date', 'DESC']],
+      limit: 5
+    });
+    res.json(orders);
+  } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+export const getTotalNumOfOrder = async (req, res) => {
+  try {
+    const count = await Order.count();
+    res.json({ totalOrders: count });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }

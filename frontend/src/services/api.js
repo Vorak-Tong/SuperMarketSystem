@@ -38,4 +38,14 @@ export const downloadFullBackup = async () => {
   link.remove();
 };
 
+export const fetchTotalSales = async () => {
+  const response = await api.get('/order-items/total-sales');
+  return response.data;
+};
+
+export const fetchTopProducts = async (limit = 5) => {
+  const response = await api.get(`/order-items/top-products?limit=${limit}`);
+  return response.data;
+};
+
 export default api; 

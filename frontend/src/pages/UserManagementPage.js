@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useContext } from 'react';
 import {
-  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, MenuItem
+  Box, Typography, Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Dialog, DialogTitle, DialogContent, DialogActions, TextField, IconButton, Alert, MenuItem, TablePagination
 } from '@mui/material';
 import { Edit, Delete } from '@mui/icons-material';
 import AuthContext from '../context/AuthContext';
@@ -20,17 +20,21 @@ const UserManagementPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [form, setForm] = useState(emptyUser);
+  const [page, setPage] = useState(0); // zero-based for TablePagination
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    fetchUsers();
+    fetchUsers(page, rowsPerPage);
     fetchRoles();
     // eslint-disable-next-line
-  }, []);
+  }, [page, rowsPerPage]);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (pageArg = page, limitArg = rowsPerPage) => {
     try {
-      const res = await api.get('/admin/users');
-      setUsers(res.data);
+      const res = await api.get(`/admin/users?page=${pageArg + 1}&limit=${limitArg}`);
+      setUsers(res.data.data || res.data || []);
+      setTotal(res.data.total || (Array.isArray(res.data) ? res.data.length : 0));
     } catch (err) {
       setError('Failed to fetch users');
     }
@@ -72,7 +76,7 @@ const UserManagementPage = () => {
         await api.post('/admin/users', form);
         enqueueSnackbar('User added', { variant: 'success' });
       }
-      fetchUsers();
+      fetchUsers(page, rowsPerPage);
       handleCloseDialog();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to save user');
@@ -84,7 +88,7 @@ const UserManagementPage = () => {
     if (!window.confirm('Delete this user?')) return;
     try {
       await api.delete(`/admin/users/${user_id}`);
-      fetchUsers();
+      fetchUsers(page, rowsPerPage);
       enqueueSnackbar('User deleted', { variant: 'success' });
     } catch (err) {
       setError('Failed to delete user');
@@ -126,6 +130,14 @@ const UserManagementPage = () => {
           </TableBody>
         </Table>
       </TableContainer>
+      <TablePagination
+        component="div"
+        count={total}
+        page={page}
+        onPageChange={(e, newPage) => setPage(newPage)}
+        rowsPerPage={rowsPerPage}
+        onRowsPerPageChange={e => { setRowsPerPage(parseInt(e.target.value, 10)); setPage(0); }}
+      />
       <Dialog open={dialogOpen} onClose={handleCloseDialog} fullWidth maxWidth="sm">
         <DialogTitle>{editingUser ? 'Edit User' : 'Add User'}</DialogTitle>
         <DialogContent>

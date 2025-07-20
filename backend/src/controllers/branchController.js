@@ -2,8 +2,11 @@ import Branch from '../models/branch.js';
 
 export const getAllBranches = async (req, res) => {
   try {
-    const branches = await Branch.findAll();
-    res.json(branches);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+    const { rows, count } = await Branch.findAndCountAll({ offset, limit });
+    res.json({ data: rows, total: count });
   } catch (err) {
     res.status(500).json({ message: 'Server error', error: err.message });
   }
